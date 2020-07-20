@@ -9,7 +9,13 @@ import logging
 from wsi.WSISettings import DEFAULT_PARAMS, WSISettings
 import os
 import numpy as np
+import csv
+import time
+import json
 
+ROOT = '/global/scratch/lucy3_li/ingroup_lang/'
+LOGS = ROOT + 'logs/'
+INPUT = '/global/scratch/lucy3_li/bertwsi/reddit_input/'
 
 def main(): 
    '''
@@ -23,16 +29,26 @@ def main():
    lm = LMBert(settings.cuda_device, settings.bert_model,
                 max_batch_size=settings.max_batch_size)
 
-   dataset = set(['cat'])
+   dataset = set(['ow', 'transmission', 'haul', 'dial', 'the'])
+   with open(LOGS + 'vocabs/vocab_map.json', 'r') as infile: 
+       d = json.load(infile)
+   inst_id_to_sense = {} 
 
    for word in dataset:
-       inst_id_to_sense = {} 
+       start = time.time()
        inst_id_to_sentence = {}
-       inst_id_to_sentence['cat1'] = ('I played with the', 'cat', 'at the animal shelter')
-       inst_id_to_sentence['cat2'] = ('I played with the fluffy', 'cat', 'at the library')
-       inst_id_to_sentence['cat3'] = ('I pet the', 'cat', 'at the animal shelter')
-       inst_id_to_sentence['cat4'] = ('I plan to adopt a', 'cat', 'from the animal shelter')
- 
+       ID = d[word]
+       doc = INPUT + str(ID)
+
+       with open(doc, 'r') as infile:
+           reader = csv.reader(infile, delimiter=',')
+           i = 0
+           for row in reader: 
+               lh = row[2]
+               word = row[3]
+               rh = row[4]
+               inst_id_to_sentence[word + str(i)] = (lh, word, rh)
+               i += 1
 
        inst_ids_to_representatives = lm.predict_sent_substitute_representatives(inst_id_to_sentence=inst_id_to_sentence,
                                                                   wsisettings=settings)
@@ -41,6 +57,8 @@ def main():
                 inst_ids_to_representatives=inst_ids_to_representatives,
                 max_number_senses=settings.max_number_senses,min_sense_instances=settings.min_sense_instances,
                 disable_tfidf=settings.disable_tfidf,explain_features=False)
+       end = time.time()
+       print("TIME:", word, end-start)
        inst_id_to_sense.update(clusters)
    
    print(inst_id_to_sense)
