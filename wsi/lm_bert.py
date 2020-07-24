@@ -76,15 +76,22 @@ class LMBert(SLM):
             self.device = device
 
     def format_sentence_to_pattern(self, pre, target, post, pattern):
+        """
+        This has been modified to accomondate sequences longer than 512
+        """
         replacements = dict(pre=pre, target=target, post=post)
         for predicted_token in ['{mask_predict}', '{target_predict}']:
-            if predicted_token in pattern: 
+            if predicted_token in pattern:
                 before_pred, after_pred = pattern.split(predicted_token)
-                before_pred = ['[CLS]'] + self.tokenizer.tokenize(before_pred.format(**replacements))
-                after_pred = self.tokenizer.tokenize(after_pred.format(**replacements)) + ['[SEP]']
-                target_prediction_idx = len(before_pred)
+                before_pred = self.tokenizer.tokenize(before_pred.format(**replacements))
+                after_pred = self.tokenizer.tokenize(after_pred.format(**replacements))
+                target_prediction_idx = len(before_pred) + 1
                 target_tokens = ['[MASK]'] if predicted_token == '{mask_predict}' else self.tokenizer.tokenize(target)
-                return before_pred + target_tokens + after_pred, target_prediction_idx
+                tokenized_text = before_pred + target_tokens + after_pred
+                if len(tokenized_text) > 510:
+                    tokenized_text = before_pred[-255:] + target_tokens + after_pred[:254] # total should be at most 510 tokens
+                    target_prediction_idx = len(before_pred[-255:]) + 1
+                return ['[CLS]'] + tokenized_text + ['[SEP]'], target_prediction_idx
 
     def _get_lemma(self, word):
         if word in self._lemmas_cache:
@@ -99,6 +106,7 @@ class LMBert(SLM):
                                                 wsisettings: WSISettings) \
             -> Dict[str, List[Dict[str, int]]]:
         """
+        Called by wsi.py 
 
         :param wsisettings: all algorithm settings
         :param inst_id_to_sentence: dictionary instance_id -> (sentence tokens list, target word index in tokens)

@@ -33,6 +33,7 @@ if __name__ == '__main__':
         startmsg += (' %-30s:%s\n' % (arg.replace('_', '-'), val))
     startmsg = startmsg.strip()
 
+    # create instance of LM BERT 
     lm = LMBert(settings.cuda_device, settings.bert_model,
                 max_batch_size=settings.max_batch_size)
 

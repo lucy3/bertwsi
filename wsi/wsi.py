@@ -15,6 +15,23 @@ class WordSenseInductor:
         self.bilm = lm
 
     def _perform_wsi_on_ds_gen(self, ds_name, gen, wsisettings: WSISettings, eval_proc, print_progress=False):
+        '''
+        @params: 
+        - ds_name: dataset name, e.g. "SemEval2010" or "SemEval2013" 
+        - gen: function from wsi.semeval_utils for generating data for each dataset
+        - wsisettings: settings
+        - eval_proc: evaluation function from wsi.semeval_utils
+
+        An overview of how this function works: 
+        1. for each instance in the dataset, organize them based on part of speech
+        2. predict sentence substitute representatives using BERT LM
+        3. cluster representatives 
+        4. evaluate on mapping from instance to sense
+        
+        inst_id_to_sentence is a dictionary of inst_id to a 
+           tuple of beginning of sentence, target word, end of sentence
+        inst_id_to_sense is a dictionary of inst_id to a dictionary of sense to weight.  
+        '''
         ds_by_target = defaultdict(dict)
         for pre, target, post, inst_id in gen:
             lemma_pos = inst_id.rsplit('.', 1)[0]
@@ -43,7 +60,6 @@ class WordSenseInductor:
                         f'Sense {idx}, # reps: {rep_count}, best feature words: {", ".join(best_features)}.'
                         f', best feature words(PMI): {", ".join(best_features_pmi)}.'
                         f' closest instance({best_instance_id}):\n---\n{nice_print_instance}\n---\n')
-
         out_key_path = None
         if wsisettings.debug_dir:
             out_key_path = os.path.join(wsisettings.debug_dir, f'{wsisettings.run_name}-{ds_name}.key')
@@ -76,6 +92,9 @@ class WordSenseInductor:
 
     def run(self, wsisettings: WSISettings,
             print_progress=False):
+        '''
+        This is the "main" function of this script, called by wsi_bert.py 
+        '''
 
         # SemEval target might be, for example, book.n (lemma+POS)
         # SemEval instance might be, for example, book.n.12 (target+index).
