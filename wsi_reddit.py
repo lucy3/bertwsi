@@ -9,9 +9,11 @@ import logging
 from wsi.WSISettings import DEFAULT_PARAMS, WSISettings
 import os
 import numpy as np
+from multiprocessing import cpu_count
 import csv
 import time
 import json
+import sys
 
 CUDA_LAUNCH_BLOCKING="1"
 ROOT = '/global/scratch/lucy3_li/ingroup_lang/'
@@ -32,8 +34,11 @@ def main():
    lm = LMBert(settings.cuda_device, settings.bert_model,
                 max_batch_size=settings.max_batch_size)
 
-   #dataset = set(['ow', 'transmission', 'haul', 'dial', 'the'])
-   dataset = set(['add'])
+   if sys.platform == 'linux':
+               os.popen(f"taskset -cp 0-{cpu_count()-1} {os.getpid()}").read() 
+   
+   dataset = set(['ow', 'transmission', 'haul', 'dial', 'the'])
+   #dataset = set(['add'])
    with open(LOGS + 'vocabs/vocab_map.json', 'r') as infile: 
        d = json.load(infile)
    inst_id_to_sense = {} 
