@@ -9,6 +9,8 @@ from scipy.spatial.distance import pdist, cdist
 from scipy.cluster.hierarchy import linkage, fcluster
 from sklearn.svm import LinearSVC
 from sklearn.preprocessing import normalize
+from joblib import dump, load
+import json
 
 import pickle
 
@@ -18,7 +20,7 @@ import pickle
 
 def cluster_inst_ids_representatives(inst_ids_to_representatives: Dict[str, List[Dict[str, int]]],
                                      max_number_senses: float,min_sense_instances:int,
-                                     disable_tfidf: bool, explain_features: bool) -> Tuple[
+                                     disable_tfidf: bool, explain_features: bool, save_clusters: str) -> Tuple[
     Dict[str, Dict[str, int]], List]:
     global gold_n_senses
     """
@@ -41,23 +43,32 @@ def cluster_inst_ids_representatives(inst_ids_to_representatives: Dict[str, List
     if disable_tfidf:
         transformed = rep_mat
     else:
-        transformed = TfidfTransformer(norm=None).fit_transform(rep_mat).todense()
+        tfidf_transformer = TfidfTransformer(norm=None)
+        transformed = tfidf_transformer.fit_transform(rep_mat).todense()
 
+    if save_clusters: # this was added by Lucy
+        # save vectors
+        np.save(save_clusters + '.npy', np.array(transformed))
+        with open(save_clusters + '_inst_ids_ordered', 'w') as outfile: 
+            outfile.write(' '.join(inst_ids_ordered))
+        # save the dictvectorizer and tfidftransformer 
+        dump(dict_vectorizer, save_clusters + '_dictvectorizer.joblib') 
+        dump(tfidf_transformer, save_clusters + '_tfidftransformer.joblib')
 
-    metric = 'cosine'
-    method = 'average'
+    metric = 'cosine' # distance between vectors
+    method = 'average' # calculating the distance between a newly formed cluster and remaining clusters
     dists = pdist(transformed, metric=metric)
-    Z = linkage(dists, method=method, metric=metric)
+    Z = linkage(dists, method=method, metric=metric) # linkage matrix
 
-    distance_crit = Z[-max_number_senses, 2]
+    distance_crit = Z[-max_number_senses, 2] # get threshold for getting flat clusters
 
     labels = fcluster(Z, distance_crit,
-                      'distance') - 1
+                      'distance') - 1 # flat clusters
 
     n_senses = np.max(labels) + 1
 
     senses_n_domminates = Counter()
-    instance_senses = {}
+    instance_senses = {}  
     for i, inst_id in enumerate(inst_ids_ordered):
         inst_id_clusters = Counter(labels[i * n_represent:
                                           (i + 1) * n_represent])
@@ -72,7 +83,7 @@ def cluster_inst_ids_representatives(inst_ids_to_representatives: Dict[str, List
         cluster_center = np.mean(np.array(transformed)[idxs_this_sense], 0)
         sense_means[sense_idx] = cluster_center
 
-    sense_remapping = {}
+    sense_remapping = {} # get closest strong sense to weak senses 
     if min_sense_instances > 0:
         dists = cdist(sense_means, sense_means, metric='cosine')
         closest_senses = np.argsort(dists, )[:, ]
@@ -87,15 +98,14 @@ def cluster_inst_ids_representatives(inst_ids_to_representatives: Dict[str, List
 
         labels = np.array([sense_remapping[x] for x in labels])
 
-
-    best_instance_for_sense = {}
+    best_instance_for_sense = {} # closest instance to sense 
     senses = {}
     for inst_id, inst_id_clusters in instance_senses.items():
         senses_inst = {}
         for sense_idx, count in inst_id_clusters.most_common():
             if sense_remapping:
-                sense_idx = sense_remapping[sense_idx]
-            senses_inst[f'{lemma}.sense.{sense_idx}'] = count
+                sense_idx = sense_remapping[sense_idx] # if belong to a weak cluster, remap to strong one
+            senses_inst[f'{lemma}.sense.{sense_idx}'] = count # weight of sense
             if sense_idx not in best_instance_for_sense:
                 best_instance_for_sense[sense_idx] = (count, inst_id)
             else:
@@ -103,8 +113,7 @@ def cluster_inst_ids_representatives(inst_ids_to_representatives: Dict[str, List
                 if current_count < count:
                     best_instance_for_sense[sense_idx] = (count, inst_id)
 
-        senses[inst_id] = senses_inst
-
+        senses[inst_id] = senses_inst # mapping from instance id to soft cluster membership 
     label_count = Counter(labels)
     statistics = []
     if len(label_count) > 1 and explain_features:
@@ -137,4 +146,8 @@ def cluster_inst_ids_representatives(inst_ids_to_representatives: Dict[str, List
             # logging.info(f'sense #{sense_idx+1} ({label_count[sense_idx]} reps) best features: {best_features}')
             statistics.append((count_reps, best_features, best_features_pmi, closest_instance))
 
+    # save senses
+    if save_clusters: # this was added by Lucy 
+        with open(save_clusters + '_senses.json', 'w') as outfile: 
+            json.dump(senses, outfile)
     return senses, statistics

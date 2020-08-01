@@ -49,7 +49,7 @@ class WordSenseInductor:
             clusters, statistics = cluster_inst_ids_representatives(
                 inst_ids_to_representatives=inst_ids_to_representatives,
                 max_number_senses=wsisettings.max_number_senses,min_sense_instances=wsisettings.min_sense_instances,
-                disable_tfidf=wsisettings.disable_tfidf,explain_features=True)
+                disable_tfidf=wsisettings.disable_tfidf,explain_features=True,save_reddit=None)
             inst_id_to_sense.update(clusters)
             if statistics:
                 logging.info('Sense cluster statistics:')

@@ -20,12 +20,14 @@ ROOT = '/global/scratch/lucy3_li/ingroup_lang/'
 LOGS = ROOT + 'logs/'
 INPUT = '/global/scratch/lucy3_li/bertwsi/reddit_input/'
 OUTPUT = '/global/scratch/lucy3_li/bertwsi/reddit_output.json'
+CLUSTERS = '/global/scratch/lucy3_li/bertwsi/reddit_clusters/'
 
 def main(): 
    '''
    input: dictionary of instance ID to (pre, target, post) 
    output: dictionary of instance ID to sense to weight 
    '''
+   word = sys.argv[1]
    settings = DEFAULT_PARAMS._asdict()
    settings['disable_lemmatization'] = True
    settings['patterns'] = [('{pre} {target_predict} {post}', 0.5)]
@@ -37,43 +39,37 @@ def main():
    if sys.platform == 'linux':
                os.popen(f"taskset -cp 0-{cpu_count()-1} {os.getpid()}").read() 
    
-   dataset = set(['ow', 'transmission', 'haul', 'dial', 'the'])
-   #dataset = set(['add'])
    with open(LOGS + 'vocabs/vocab_map.json', 'r') as infile: 
        d = json.load(infile)
-   inst_id_to_sense = {} 
-
-   for word in sorted(dataset):
-       start = time.time()
-       inst_id_to_sentence = {}
-       ID = d[word]
-       doc = INPUT + str(ID)
-
-       with open(doc, 'r') as infile:
-           reader = csv.reader(infile, delimiter=',')
-           i = 0
-           for row in reader: 
-               lh = row[2]
-               word = row[3]
-               rh = row[4]
-               inst_id_to_sentence[word + '.' + str(i)] = (lh, word, rh)
-               i += 1
-       
-       print("~~~", word, len(inst_id_to_sentence))
-
-       inst_ids_to_representatives = lm.predict_sent_substitute_representatives(inst_id_to_sentence=inst_id_to_sentence,
-                                                                  wsisettings=settings)
-
-       clusters, statistics = cluster_inst_ids_representatives(
-                inst_ids_to_representatives=inst_ids_to_representatives,
-                max_number_senses=settings.max_number_senses,min_sense_instances=settings.min_sense_instances,
-                disable_tfidf=settings.disable_tfidf,explain_features=False)
-       end = time.time()
-       print("TIME:", word, end-start)
-       inst_id_to_sense.update(clusters)
    
+   start = time.time()
+   inst_id_to_sentence = {}
+   ID = d[word]
+   doc = INPUT + str(ID)
+   print(word)
+   with open(doc, 'r') as infile:
+       reader = csv.reader(infile, delimiter=',')
+       i = 0
+       for row in reader: 
+           lh = row[2]
+           word = row[3]
+           rh = row[4]
+           inst_id_to_sentence[word + '.' + str(i)] = (lh, word, rh)
+           i += 1
+   
+   inst_ids_to_representatives = lm.predict_sent_substitute_representatives(inst_id_to_sentence=inst_id_to_sentence,
+                                                              wsisettings=settings)
+
+   clusters, statistics = cluster_inst_ids_representatives(
+            inst_ids_to_representatives=inst_ids_to_representatives,
+            max_number_senses=settings.max_number_senses,min_sense_instances=settings.min_sense_instances,
+            disable_tfidf=settings.disable_tfidf,explain_features=False,save_clusters=CLUSTERS + str(ID))
+   end = time.time()
+   print("TIME:", word, end-start)
+   ''' 
    with open(OUTPUT, 'w') as outfile:
        json.dump(inst_id_to_sense, outfile)
+   '''
 
 if __name__ == '__main__':
    main()

@@ -17,33 +17,38 @@ from wsi.wsi import WordSenseInductor
 from multiprocessing import cpu_count
 import sys
 
-def perform_wsi(ds_name, gen, wsisettings: WSISettings, eval_proc, print_progress=False):
+SEMEVAL_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/semeval_clusters/' 
+
+def perform_wsi(ds_name, test_gen, wsisettings: WSISettings, eval_proc, print_progress=False):
     ds_by_target = defaultdict(dict)
 
     # this part was rewritten from the original code to handle both train and test split inputs
     # TODO: can keep old gen for test data, but do the same preprocessing for train data 
-    for pre, target, post, inst_id in gen:
+    for pre, target, post, inst_id in test_gen:
         lemma_pos = inst_id.rsplit('.', 1)[0]
         ds_by_target[lemma_pos][inst_id] = (pre, target, post)
 
     inst_id_to_sense = {}
-    gen = ds_by_target.items()
+    test_gen = ds_by_target.items()
     if print_progress:
-        gen = tqdm(gen, desc=f'predicting substitutes {ds_name}')
-    for lemma_pos, inst_id_to_sentence in gen:
-        inst_ids_to_representatives = \
-            self.bilm.predict_sent_substitute_representatives(inst_id_to_sentence=inst_id_to_sentence,
+        test_gen = tqdm(test_gen, desc=f'predicting substitutes {ds_name}')
+    # TODO: need to create train_inst_id_to_sentence
+    for lemma_pos, test_inst_id_to_sentence in test_gen:
+        train_inst_ids_to_representatives = \
+            bilm.predict_sent_substitute_representatives(inst_id_to_sentence=train_inst_id_to_sentence,
                                                               wsisettings=wsisettings)
-
-        # TODO: modify this function to save cluster information 
-        # output instead of clusters should be cluster information for matching later 
+ 
+        lemma = lemma_pos.split('.')[0]
         clusters, statistics = cluster_inst_ids_representatives(
-            inst_ids_to_representatives=inst_ids_to_representatives,
+            inst_ids_to_representatives=train_inst_ids_to_representatives,
             max_number_senses=wsisettings.max_number_senses,min_sense_instances=wsisettings.min_sense_instances,
-            disable_tfidf=wsisettings.disable_tfidf,explain_features=True)
+            disable_tfidf=wsisettings.disable_tfidf,explain_features=True,save_clusters=SEMEVAL_CLUSTERS+lemma)
 
         # TODO: get test set examples 
         # TODO: match test set examples to closest centroid. get clusters
+        test_inst_ids_to_representatives = \
+            bilm.predict_sent_substitute_representatives(inst_id_to_sentence=test_inst_id_to_sentence,
+                                                              wsisettings=wsisettings)
 
         inst_id_to_sense.update(clusters)
     out_key_path = None

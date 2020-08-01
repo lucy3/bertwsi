@@ -13,7 +13,6 @@ if __name__ == '__main__':
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
     root_logger.addHandler(logging.NullHandler())
-    # for i in range(10):
     settings = DEFAULT_PARAMS._asdict()
 
     # --------------- modify default settings
@@ -22,6 +21,7 @@ if __name__ == '__main__':
     #
     # run_name = strftime("%m%d-%H%M%S") + '-wth72'
     # settings['run_name'] = run_name
+    settings['patterns'] = [('{pre} {target_predict} {post}', 0.5)]
 
     # --------------- finalizing settings
     settings = WSISettings(**settings)

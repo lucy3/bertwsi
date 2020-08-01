@@ -7,30 +7,29 @@ ROOT = '/global/scratch/lucy3_li/bertwsi/'
 LOGS = '/global/scratch/lucy3_li/ingroup_lang/logs/'
 INPUT = ROOT + 'reddit_output.json'
 DOCS = ROOT + 'reddit_input/'
+CLUSTERS = ROOT + 'reddit_clusters/'
 
 def main(): 
-    with open(INPUT, 'r') as infile: 
-        d = json.load(infile)
-
     sense2example = defaultdict(dict) # {word : {sense : [example]} }
-
-    for example in d: 
-        senses = d[example]
-        max_weight = -float("inf")
-        max_sense = ''
-        word = example.split('.')[0]
-        for sense in senses: 
-            if senses[sense] > max_weight: 
-                max_weight = senses[sense]
-                max_sense = sense
-        if sense not in sense2example[word]: 
-            sense2example[word][sense] = [example]
-        else: 
-            sense2example[word][sense].append(example)
-
-
     with open(LOGS + 'vocabs/vocab_map.json', 'r') as infile: 
        d = json.load(infile)
+
+    for word in ['dial', 'ow', 'the', 'transmission', 'haul']:
+        ID = d[word]
+        with open(CLUSTERS + str(ID) + '_senses.json', 'r') as infile: 
+            word_senses = json.load(infile)
+        for instance in word_senses: 
+            max_weight = -float("inf")
+            max_sense = ''
+            senses = word_senses[instance]
+            for sense in senses: 
+                if senses[sense] > max_weight: 
+                    max_weight = senses[sense]
+                    max_sense = sense
+            if max_sense not in sense2example[word]: 
+                sense2example[word][max_sense] = [instance]
+            else: 
+                sense2example[word][max_sense].append(instance)
 
     inst_id_to_sentence = {}
 

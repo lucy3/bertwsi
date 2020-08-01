@@ -160,7 +160,7 @@ def get_n_senses_corr(gold_key, new_key):
     return corr
 
 
-def evaluate_labeling_2013(dir_path, labeling: Dict[str, Dict[str, int]], key_path: str = None) \
+def evaluate_labeling_2013_old(dir_path, labeling: Dict[str, Dict[str, int]], key_path: str = None) \
         -> Tuple[Dict[str, Dict[str, float]], Tuple]:
     """
     labeling example : {'become.v.3': {'become.sense.1':3,'become.sense.5':17} ... }
@@ -222,6 +222,68 @@ def evaluate_labeling_2013(dir_path, labeling: Dict[str, Dict[str, int]], key_pa
 
     return scores, correlation
 
+def evaluate_labeling_2013(dir_path, labeling: Dict[str, Dict[str, int]], key_path: str = None) \
+        -> Tuple[Dict[str, Dict[str, float]], Tuple]:
+    """
+    labeling example : {'become.v.3': {'become.sense.1':3,'become.sense.5':17} ... }
+    means instance become.v.3' is 17/20 in sense 'become.sense.5' and 3/20 in sense 'become.sense.1'
+    :param key_path: write produced key to this file
+    :param dir_path: SemEval dir
+    :param labeling: instance id labeling
+    :return: FNMI, FBC as calculated by SemEval provided code
+    """
+    logging.info('starting evaluation key_path: %s' % key_path)
+    print("~~~~~~ SINGLE SENSE 2013 :D")
+
+    def get_scores(gold_key, eval_key):
+        ret = {}
+        for metric, jar, column in [
+            #         ('jaccard-index','SemEval-2013-Task-13-test-data/scoring/jaccard-index.jar'),
+            #         ('pos-tau', 'SemEval-2013-Task-13-test-data/scoring/positional-tau.jar'),
+            #         ('WNDC', 'SemEval-2013-Task-13-test-data/scoring/weighted-ndcg.jar'),
+            ('FNMI', os.path.join(dir_path, 'scoring/fuzzy-nmi.jar'), 1),
+            ('FBC', os.path.join(dir_path, 'scoring/fuzzy-bcubed.jar'), 3),
+        ]:
+            logging.info('calculating metric %s' % metric)
+            res = subprocess.Popen(['java', '-jar', jar, gold_key, eval_key], stdout=subprocess.PIPE).stdout.readlines()
+            # columns = []
+            for line in res:
+                line = line.decode().strip()
+                if line.startswith('term'):
+                    # columns = line.split('\t')
+                    pass
+                else:
+                    split = line.split('\t')
+                    if len(split) > column:
+                        word = split[0]
+                        # results = list(zip(columns[1:], map(float, split[1:])))
+                        result = split[column]
+                        if word not in ret:
+                            ret[word] = {}
+                        ret[word][metric] = float(result)
+
+        return ret
+
+    with tempfile.NamedTemporaryFile('wt') as fout:
+        lines = []
+        for instance_id, clusters_dict in labeling.items():
+            clusters = sorted(clusters_dict.items(), key=lambda x: x[1])
+            clusters_str = f'{clusters[-1][0]}'  # top sense
+            lemma_pos = instance_id.rsplit('.', 1)[0]
+            lines.append('%s %s %s' % (lemma_pos, instance_id, clusters_str))
+        fout.write('\n'.join(lines))
+        fout.flush()
+        gold_key_path = os.path.join(dir_path, 'keys/gold/all.singlesense.key')
+        scores = get_scores(gold_key_path,
+                            fout.name)
+        if key_path:
+            logging.info('writing key to file %s' % key_path)
+            with open(key_path, 'w', encoding="utf-8") as fout2:
+                fout2.write('\n'.join(lines))
+
+        correlation = get_n_senses_corr(gold_key_path, fout.name)
+
+    return scores, correlation
 
 def evaluate_labeling_2010(dir_path, labeling: Dict[str, Dict[str, int]], key_path: str = None) \
         -> Tuple[Dict[str, Dict[str, float]], Tuple]:
