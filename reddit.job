@@ -1,0 +1,25 @@
+#!/bin/bash
+# Job name:
+#SBATCH --job-name=inspect
+# Partition:
+#SBATCH --partition=savio2_gpu
+#
+# Wall clock limit:
+#SBATCH --time=2-23:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --gres=gpu:1
+#SBATCH --account=fc_dbamman
+
+source /global/scratch/lucy3_li/anaconda3/bin/activate /global/scratch/lucy3_li/anaconda3/envs/wsi
+
+module load java
+
+#time awk -F "," '{print $1}' /global/scratch/lucy3_li/bertwsi/xae | parallel 'python wsi_reddit.py {}' &
+#wait
+
+python inspect_senses.py
+
+source /global/scratch/lucy3_li/anaconda3/bin/deactivate
+

@@ -1,0 +1,24 @@
+#!/bin/bash
+# Job name:
+#SBATCH --job-name=d
+# Partition:
+#SBATCH --partition=savio2_1080ti
+#
+# Wall clock limit:
+#SBATCH --time=2-00:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --gres=gpu:1
+#SBATCH --mail-user=lucy3_li@berkeley.edu
+#SBATCH --mail-type=all
+#SBATCH --account=fc_dbamman
+
+source /global/scratch/lucy3_li/anaconda3/bin/activate /global/scratch/lucy3_li/anaconda3/envs/nlp
+
+time awk -F "," '{print $1}' /global/scratch/lucy3_li/ingroup_lang/logs/vocabs/xad | parallel 'python reddit_prep.py {}' & 
+wait
+
+#python reddit_prep.py message
+
+source /global/scratch/lucy3_li/anaconda3/bin/deactivate

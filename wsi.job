@@ -1,0 +1,22 @@
+#!/bin/bash
+# Job name:
+#SBATCH --job-name=bert
+# Partition:
+#SBATCH --partition=savio2_1080ti
+#
+# Wall clock limit:
+#SBATCH --time=2-00:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --gres=gpu:1
+#SBATCH --account=fc_dbamman
+
+source /global/scratch/lucy3_li/anaconda3/bin/activate /global/scratch/lucy3_li/anaconda3/envs/wsi
+
+module load java
+
+time python wsi_bert.py
+
+source /global/scratch/lucy3_li/anaconda3/bin/deactivate
+

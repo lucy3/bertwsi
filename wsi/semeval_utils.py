@@ -8,7 +8,7 @@ import logging
 import pickle
 from collections import defaultdict
 from scipy.stats import spearmanr
-
+from nltk.tokenize import sent_tokenize
 
 def generate_sem_eval_2013(dir_path: str):
     logging.info('reading SemEval dataset from %s' % dir_path)
@@ -58,6 +58,13 @@ def generate_sem_eval_2013_no_tokenization(dir_path: str):
                 # after = [x.text for x in nlp(after.strip(), disable=['parser', 'tagger', 'ner'])]
                 yield before.strip(), target.strip(), after.strip(), inst_id
 
+def generate_semeval_2013_train(): 
+    '''
+    This follows our setup for the other model 
+    training dataset is ukwac2.txt
+
+    ''' 
+    pass
 
 def generate_sem_eval_2010_no_tokenization(dir_path: str):
     logging.info('reading SemEval dataset from %s' % dir_path)
@@ -96,7 +103,7 @@ def generate_sem_eval_2010_no_tokenization(dir_path: str):
                         stemmed_lemma = basic_stem(lemma)
 
                         # pres_sent = child.text
-                        target_sent = child[0].text
+                        target_sents = child[0].text
                         # post_sent = child[0].tail - use only
 
                         # if not pres_sent:
@@ -139,6 +146,86 @@ def generate_sem_eval_2010_no_tokenization(dir_path: str):
             logging.exception(e)
     return cached
 
+def generate_semeval2010_train(dir_path): 
+    '''
+    Same as the test data except there are multiple sentences
+    in which we must find the target, and the cache file is different.
+    '''
+    logging.info('reading SemEval dataset from %s' % dir_path)
+    cached = []
+    cache_file_path = os.path.join(dir_path, 'wsi2010_cache_train.pickle')
+    if os.path.exists(cache_file_path):
+        with open(cache_file_path, 'rb') as fin:
+            cached = pickle.load(fin)
+    else:
+        nlp = spacy.load('en', disable=['ner'])
+        additional_mapping = {'stuck': 'stick', 'straightened': 'straighten', 'shaved': 'shave', 'shaving': 'shave',
+                              'swam': 'swim', 'figgere': 'figure', 'violating': 'violate', 'lain': 'lie', 'lied': 'lie',
+                              'figger': 'figure', 'swore': 'swear', 'swears': 'swear', 'observed': 'observe',
+                              'committed': 'commit', 'divided': 'divide', 'lie': 'lay', 'lay': 'lie', 'lah': 'lie',
+                              'swimming': 'swim'}
+
+        def basic_stem(w):
+            if w[-1] == 's':
+                w = w[:-1]
+            elif w[-3:] == 'ing':
+                w = w[:-3]
+            elif w[-2:] == 'ed':
+                w = w[:-2]
+            return w.lower()
+
+        for root_dir, dirs, files in os.walk(dir_path):  # "../paper-menuscript/resources/SemEval-2010/test_data/"):
+            #     path = root.split(os.sep)
+            for file in files:
+                if '.xml' in file:
+                    tree = ElementTree.parse(os.path.join(root_dir, file))
+                    root = tree.getroot()
+                    for child in root:
+                        inst_name = child.tag
+                        lemma = inst_name.split('.')[0]
+
+                        stemmed_lemma = basic_stem(lemma)
+
+                        target_sents = sentence_tokenize(child[0].text)
+                        # this is modified by lucy to account for multiple sents in training data
+                        not_found = True
+                        for target_sent in target_sents: 
+                            if not_found == False: break
+
+                            # the word is not marked here so we need to find the lemma within our sentence
+                            # - this does the trick for bert uncased in SE2010
+                            parsed = nlp(target_sent)
+                            first_occur_idx = None
+                            for idx, w in enumerate(parsed):
+                                token_lemma = basic_stem(
+                                    w.lemma_)
+                                if token_lemma == stemmed_lemma or additional_mapping.get(w.lemma_.lower()) == lemma:
+                                    first_occur_idx = idx
+                                    not_found = False
+                                    break
+                        if first_occur_idx is None:
+                            print(
+                                'could not find the correct lemma -probably spacy\'s lemmatizer had changed. '
+                                'add the lemma from here to additional_mapping:')
+                            print(file, [x.lemma_ for x in parsed], target_sent)
+                            # e.g. if you see lie.v was broken and in the list of lemmas you find 'lain'
+                            # - add a mapping from 'lain' -> 'lie' in additional_mapping map above
+                            raise Exception('Could not pin-point lemma in SemEval sentence')
+
+                        pre = ''.join(parsed[i].string for i in range(first_occur_idx))
+                        ambig = parsed[first_occur_idx].text
+                        post = ''.join(
+                            parsed[i].string for i in range(first_occur_idx + 1, len(parsed)))  # + ' ' + post_sent
+
+                        pre = pre.replace(" 's ", "'s ")
+                        post = post.replace(" 's ", "'s ")
+                        cached.append((pre, ambig, post, inst_name))
+        try:
+            with open(cache_file_path, 'wb') as fout:
+                pickle.dump(cached, fout)
+        except Exception as e:
+            logging.exception(e)
+    return cached
 
 def get_n_senses_corr(gold_key, new_key):
     senses_lemma_gold = defaultdict(set)
@@ -225,6 +312,8 @@ def evaluate_labeling_2013_old(dir_path, labeling: Dict[str, Dict[str, int]], ke
 def evaluate_labeling_2013(dir_path, labeling: Dict[str, Dict[str, int]], key_path: str = None) \
         -> Tuple[Dict[str, Dict[str, float]], Tuple]:
     """
+    NOTE: this function has been modified by Lucy to only do single sense evaluation 
+    
     labeling example : {'become.v.3': {'become.sense.1':3,'become.sense.5':17} ... }
     means instance become.v.3' is 17/20 in sense 'become.sense.5' and 3/20 in sense 'become.sense.1'
     :param key_path: write produced key to this file
