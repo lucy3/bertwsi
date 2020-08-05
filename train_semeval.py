@@ -4,7 +4,7 @@ from wsi.semeval_utils import generate_sem_eval_2013_no_tokenization, generate_s
             evaluate_labeling_2010, evaluate_labeling_2013,get_n_senses_corr, \
             generate_semeval2010_train, generate_semeval2013_train
 from collections import defaultdict
-from wsi.wsi_clustering import cluster_inst_ids_representatives
+from wsi.wsi_clustering import cluster_inst_ids_representatives, match_inst_ids_representatives
 from tqdm import tqdm
 import numpy as np
 import csv
@@ -21,7 +21,8 @@ import random
 
 SEMEVAL_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/semeval_clusters/' 
 
-def perform_wsi(ds_name, train_gen, test_gen, wsisettings: WSISettings, eval_proc, print_progress=False, seed=0):
+def perform_wsi(ds_name, bilm, train_gen, test_gen, \
+        wsisettings: WSISettings, eval_proc, print_progress=False, seed=0):
     train_ds_by_target = defaultdict(dict)
     test_ds_by_target = defaultdict(dict)
 
@@ -41,6 +42,7 @@ def perform_wsi(ds_name, train_gen, test_gen, wsisettings: WSISettings, eval_pro
         lemma = lemma_pos.replace('.', '-') # just in case, for file naming 
         outpath = SEMEVAL_CLUSTERS + str(seed) + '_' + lemma
         # TRAIN
+        '''
         train_iits_all = train_ds_by_target[lemma_pos]
         inst_ids = list(train_iits_all.keys())
         if len(inst_ids) > 500: # cap at 500 examples 
@@ -53,20 +55,17 @@ def perform_wsi(ds_name, train_gen, test_gen, wsisettings: WSISettings, eval_pro
         train_inst_ids_to_representatives = \
             bilm.predict_sent_substitute_representatives(inst_id_to_sentence=train_inst_id_to_sentence,
                                                               wsisettings=wsisettings)
- 
         _, _ = cluster_inst_ids_representatives(
             inst_ids_to_representatives=train_inst_ids_to_representatives,
             max_number_senses=wsisettings.max_number_senses,min_sense_instances=wsisettings.min_sense_instances,
             disable_tfidf=wsisettings.disable_tfidf,explain_features=True,save_clusters=outpath)
-    '''
+        '''
         # TEST
         test_inst_ids_to_representatives = \
             bilm.predict_sent_substitute_representatives(inst_id_to_sentence=test_inst_id_to_sentence,
                                                               wsisettings=wsisettings)
-
-        # TODO: match test set examples
         clusters = match_inst_id_representatives(test_inst_ids_to_representatives, save_clusters=outpath)
-        
+
         inst_id_to_sense.update(clusters)
         
     out_key_path = None
@@ -77,8 +76,6 @@ def perform_wsi(ds_name, train_gen, test_gen, wsisettings: WSISettings, eval_pro
         print(f'writing {ds_name} key file to %s' % out_key_path)
 
     return eval_proc(inst_id_to_sense, out_key_path)
-    '''
-    return None
 
 def examine_data(gen): 
     ds_by_target = defaultdict(dict)
@@ -100,7 +97,7 @@ def main():
     # the following is copied from wsi_bert.py
     settings = DEFAULT_PARAMS._asdict()
     settings['run_name'] = 'eval500'
-    settings['patterns'] = [('{pre} {target_predict} {post}', 0.5)] # no ND
+    settings['patterns'] = [('{pre} {target_predict} {post}', 0.5)] # no dynamic patterns
     settings = WSISettings(**settings)
 
     lm = LMBert(settings.cuda_device, settings.bert_model,
@@ -109,11 +106,13 @@ def main():
                 os.popen(f"taskset -cp 0-{cpu_count()-1} {os.getpid()}").read() 
    
     # this part is new 
+    # semeval 2013 eval_proc has been modified to do single-sense evaluation 
 
     #test_gen = generate_sem_eval_2013_no_tokenization('./resources/SemEval-2013-Task-13-test-data')
     #train_gen = generate_semeval_2013_train('/global/scratch/lucy3_li/ingroup_lang/logs/ukwac2.txt')
     '''
-    perform_wsi('SemEval2013', 
+    perform_wsi('SemEval2013',
+            lm,
             train_gen, 
             test_gen, 
             settings, 
@@ -124,14 +123,14 @@ def main():
 
     test_gen = generate_sem_eval_2010_no_tokenization('./resources/SemEval-2010/test_data')
     train_gen = generate_semeval2010_train('/global/scratch/lucy3_li/ingroup_lang/semeval-2010-task-14/training_data/')
-
     perform_wsi('SemEval2010', 
+            lm,
             train_gen, 
             test_gen, 
             settings, 
             lambda inst2sense, outkey:
             evaluate_labeling_2010('./resources/SemEval-2010/evaluation/', inst2sense, outkey),
-            print_progress=False, seed=s)) 
+            print_progress=False, seed=s) 
     
     
 
