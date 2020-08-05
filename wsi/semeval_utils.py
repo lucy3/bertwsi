@@ -58,13 +58,43 @@ def generate_sem_eval_2013_no_tokenization(dir_path: str):
                 # after = [x.text for x in nlp(after.strip(), disable=['parser', 'tagger', 'ner'])]
                 yield before.strip(), target.strip(), after.strip(), inst_id
 
-def generate_semeval_2013_train(): 
+def generate_semeval2013_train(dir_path: str): 
     '''
-    This follows our setup for the other model 
-    training dataset is ukwac2.txt
-
+    Training dataset is ukwac2.txt
+    This was written to closely follow semeval 2010's functions
     ''' 
-    pass
+    logging.info('reading SemEval data from from %s' % dir_path)
+    cached = []
+    cache_file_path = os.path.join(dir_path, 'wsi2013_cache_train.pickle')
+    if os.path.exists(cache_file_path):
+        with open(cache_file_path, 'rb') as fin:
+            cached = pickle.load(fin)
+    else: 
+        nlp = spacy.load('en', disable=['ner'])
+        with open(sem_eval_train, 'r') as infile: 
+            i = 0
+            for line in infile: 
+                contents = line.strip().split('\t') 
+                inst_ID = contents[0] + '.' + str(i) # e.g. win.v.1
+                target_word = contents[1]
+                sent = ' '.join(contents[2:])
+                parsed = nlp(target_sent)
+                first_occur_idx = None
+                for idx, w in enumerate(parsed):
+                    if w.lower() == target_word.lower(): 
+                        first_occur_idx = idx
+                if first_occur_idx is None:
+                    print(target_word, "---->", target_sent)
+                    raise Exception('Could not pin-point lemma in SemEval sentence')
+                pre = ''.join(parsed[i].string for i in range(first_occur_idx))
+                post = ''.join(parsed[i].string for i in range(first_occur_idx + 1, len(parsed)))
+                pre = pre.replace(" 's ", "'s ")
+                post = post.replace(" 's ", "'s ")
+                cached.append((pre, target_word, post, inst_ID))
+                i += 1
+        with open(cache_file_path, 'wb') as fout:
+            pickle.dump(cached, fout)
+    return cached
 
 def generate_sem_eval_2010_no_tokenization(dir_path: str):
     logging.info('reading SemEval dataset from %s' % dir_path)
@@ -186,7 +216,7 @@ def generate_semeval2010_train(dir_path):
 
                         stemmed_lemma = basic_stem(lemma)
 
-                        target_sents = sentence_tokenize(child[0].text)
+                        target_sents = sent_tokenize(child.text)
                         # this is modified by lucy to account for multiple sents in training data
                         not_found = True
                         for target_sent in target_sents: 
@@ -207,10 +237,8 @@ def generate_semeval2010_train(dir_path):
                             print(
                                 'could not find the correct lemma -probably spacy\'s lemmatizer had changed. '
                                 'add the lemma from here to additional_mapping:')
-                            print(file, [x.lemma_ for x in parsed], target_sent)
-                            # e.g. if you see lie.v was broken and in the list of lemmas you find 'lain'
-                            # - add a mapping from 'lain' -> 'lie' in additional_mapping map above
-                            raise Exception('Could not pin-point lemma in SemEval sentence')
+                            print(file, lemma, child.text)
+                            continue
 
                         pre = ''.join(parsed[i].string for i in range(first_occur_idx))
                         ambig = parsed[first_occur_idx].text

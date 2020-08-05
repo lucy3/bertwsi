@@ -1,10 +1,12 @@
 from typing import Dict, List, Tuple
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.pipeline import make_pipeline
 from collections import Counter
 import numpy as np
 import logging
+from scipy import sparse
 from scipy.spatial.distance import pdist, cdist
 from scipy.cluster.hierarchy import linkage, fcluster
 from sklearn.svm import LinearSVC
@@ -16,6 +18,43 @@ import pickle
 
 # with open('gold_n_senses.pickle', 'rb') as fin:
 #     gold_n_senses = pickle.load(fin)
+
+def match_inst_id_representatives(inst_ids_to_representatives, save_clusters: str): 
+    """
+    Function written by Lucy
+    inst_ids_to_representatives are test examples
+    """
+    inst_ids_ordered = list(inst_ids_to_representatives.keys())
+    lemma = inst_ids_ordered[0].rsplit('.', 1)[0]
+    logging.info('matching lemma %s' % lemma)
+    representatives = [y for x in inst_ids_ordered for y in inst_ids_to_representatives[x]]
+    n_represent = len(representatives) // len(inst_ids_ordered)
+
+    # load up saved items 
+    train_transformed = sparse.csr_matrix(np.load(save_clusters + '.npy'))
+    dict_vectorizer = load(save_clusters + '_dictvectorizer.joblib') 
+    tfidf_transformer = load(tfidf_transformer, save_clusters + '_tfidftransformer.joblib')
+    with open(save_clusters + '_labels', 'r') as infile: 
+        train_labels = infile.read().strip().split(' ')
+
+    # get test vectors
+    rep_mat = dict_vectorizer.transform(representatives)
+    test_transformed = tfidf_transformer.transform(rep_mat) # sparse matrix
+
+    # calculate cosine sim between test_transformed and train_transformed
+    sim = cosine_similarity(test_transformed, train_transformed) # n_test x n_train
+    # for each get col index of each row's max 
+    max_idx = np.argmax(sim, axis=1)
+    # get label of col index
+    labels = [train_labels[i] for i in max_idx]  
+
+    test_senses = {}
+    for i, inst_id in enumerate(inst_ids_ordered):
+        inst_id_clusters = Counter(labels[i * n_represent:
+                                          (i + 1) * n_represent])
+        test_senses[inst_id] = inst_id_clusters
+
+    return test_senses
 
 
 def cluster_inst_ids_representatives(inst_ids_to_representatives: Dict[str, List[Dict[str, int]]],
@@ -49,8 +88,6 @@ def cluster_inst_ids_representatives(inst_ids_to_representatives: Dict[str, List
     if save_clusters: # this was added by Lucy
         # save vectors
         np.save(save_clusters + '.npy', np.array(transformed))
-        with open(save_clusters + '_inst_ids_ordered', 'w') as outfile: 
-            outfile.write(' '.join(inst_ids_ordered))
         # save the dictvectorizer and tfidftransformer 
         dump(dict_vectorizer, save_clusters + '_dictvectorizer.joblib') 
         dump(tfidf_transformer, save_clusters + '_tfidftransformer.joblib')
@@ -147,7 +184,9 @@ def cluster_inst_ids_representatives(inst_ids_to_representatives: Dict[str, List
             statistics.append((count_reps, best_features, best_features_pmi, closest_instance))
 
     # save senses
-    if save_clusters: # this was added by Lucy 
+    if save_clusters: # this was added by Lucy
+        with open(save_clusters + '_labels', 'w') as outfile: 
+            outfile.write(' '.join([str(l) for l in labels]))
         with open(save_clusters + '_senses.json', 'w') as outfile: 
             json.dump(senses, outfile)
     return senses, statistics
