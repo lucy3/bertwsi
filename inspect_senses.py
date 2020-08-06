@@ -9,7 +9,7 @@ INPUT = ROOT + 'reddit_output.json'
 DOCS = ROOT + 'reddit_input/'
 CLUSTERS = ROOT + 'reddit_clusters/'
 
-def main(): 
+def inspect_reddit(): 
     sense2example = defaultdict(dict) # {word : {sense : [example]} }
     with open(LOGS + 'vocabs/vocab_map.json', 'r') as infile: 
        d = json.load(infile)
@@ -62,6 +62,9 @@ def main():
             for example in sample: 
                 print(inst_id_to_sentence[example])
         print()
+
+def inspect_semeval(): 
+
 
 
 if __name__ == '__main__': 

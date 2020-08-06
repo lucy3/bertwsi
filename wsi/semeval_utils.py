@@ -65,27 +65,27 @@ def generate_semeval2013_train(dir_path: str):
     ''' 
     logging.info('reading SemEval data from from %s' % dir_path)
     cached = []
-    cache_file_path = os.path.join(dir_path, 'wsi2013_cache_train.pickle')
+    cache_file_path = './wsi2013_cache_train.pickle'
     if os.path.exists(cache_file_path):
         with open(cache_file_path, 'rb') as fin:
             cached = pickle.load(fin)
     else: 
         nlp = spacy.load('en', disable=['ner'])
-        with open(sem_eval_train, 'r') as infile: 
+        with open(dir_path, 'r') as infile: 
             i = 0
             for line in infile: 
                 contents = line.strip().split('\t') 
                 inst_ID = contents[0] + '.' + str(i) # e.g. win.v.1
                 target_word = contents[1]
-                sent = ' '.join(contents[2:])
+                target_sent = ' '.join(contents[2:])
                 parsed = nlp(target_sent)
                 first_occur_idx = None
                 for idx, w in enumerate(parsed):
-                    if w.lower() == target_word.lower(): 
+                    if w.text.lower() == target_word.lower(): 
                         first_occur_idx = idx
                 if first_occur_idx is None:
                     print(target_word, "---->", target_sent)
-                    raise Exception('Could not pin-point lemma in SemEval sentence')
+                    continue
                 pre = ''.join(parsed[i].string for i in range(first_occur_idx))
                 post = ''.join(parsed[i].string for i in range(first_occur_idx + 1, len(parsed)))
                 pre = pre.replace(" 's ", "'s ")

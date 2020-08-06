@@ -4,7 +4,7 @@ from wsi.semeval_utils import generate_sem_eval_2013_no_tokenization, generate_s
             evaluate_labeling_2010, evaluate_labeling_2013,get_n_senses_corr, \
             generate_semeval2010_train, generate_semeval2013_train
 from collections import defaultdict
-from wsi.wsi_clustering import cluster_inst_ids_representatives, match_inst_ids_representatives
+from wsi.wsi_clustering import cluster_inst_ids_representatives, match_inst_id_representatives
 from tqdm import tqdm
 import numpy as np
 import csv
@@ -19,7 +19,8 @@ from multiprocessing import cpu_count
 import sys
 import random
 
-SEMEVAL_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/semeval_clusters/' 
+SEMEVAL2010_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/semeval_clusters_2010/' 
+SEMEVAL2013_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/semeval_clusters_2013/'  
 
 def perform_wsi(ds_name, bilm, train_gen, test_gen, \
         wsisettings: WSISettings, eval_proc, print_progress=False, seed=0):
@@ -40,9 +41,13 @@ def perform_wsi(ds_name, bilm, train_gen, test_gen, \
         test_gen = tqdm(test_gen, desc=f'predicting substitutes {ds_name}')
     for lemma_pos, test_inst_id_to_sentence in test_gen:
         lemma = lemma_pos.replace('.', '-') # just in case, for file naming 
-        outpath = SEMEVAL_CLUSTERS + str(seed) + '_' + lemma
+        if ds_name == 'SemEval2010': 
+            outpath = SEMEVAL2010_CLUSTERS + str(seed) + '_' + lemma
+        else: 
+            outpath = SEMEVAL2013_CLUSTERS + str(seed) + '_' + lemma
         # TRAIN
         '''
+        lemma_pos = lemma_pos.replace('.j', '.a') # difference between train/test pos label
         train_iits_all = train_ds_by_target[lemma_pos]
         inst_ids = list(train_iits_all.keys())
         if len(inst_ids) > 500: # cap at 500 examples 
@@ -108,29 +113,39 @@ def main():
     # this part is new 
     # semeval 2013 eval_proc has been modified to do single-sense evaluation 
 
-    #test_gen = generate_sem_eval_2013_no_tokenization('./resources/SemEval-2013-Task-13-test-data')
-    #train_gen = generate_semeval_2013_train('/global/scratch/lucy3_li/ingroup_lang/logs/ukwac2.txt')
-    '''
-    perform_wsi('SemEval2013',
+    test_gen = generate_sem_eval_2013_no_tokenization('./resources/SemEval-2013-Task-13-test-data')
+    train_gen = generate_semeval2013_train('/global/scratch/lucy3_li/ingroup_lang/logs/ukwac2.txt')
+    
+    scores2013, corr = perform_wsi('SemEval2013',
             lm,
             train_gen, 
             test_gen, 
             settings, 
             lambda inst2sense, outkey: 
             evaluate_labeling_2013('./resources/SemEval-2013-Task-13-test-data', inst2sense, outkey), 
-            print_progress=False))
-    '''
-
+            print_progress=False, seed=s)
+    fnmi = scores2013['all']['FNMI']
+    fbc = scores2013['all']['FBC']
+    msg = 'SemEval 2013 FNMI %.2f FBC %.2f AVG %.2f' % (fnmi * 100, fbc * 100, np.sqrt(fnmi * fbc) * 100)
+    print(msg)
+     
     test_gen = generate_sem_eval_2010_no_tokenization('./resources/SemEval-2010/test_data')
     train_gen = generate_semeval2010_train('/global/scratch/lucy3_li/ingroup_lang/semeval-2010-task-14/training_data/')
-    perform_wsi('SemEval2010', 
+    scores2010, corr = perform_wsi('SemEval2010', 
             lm,
             train_gen, 
             test_gen, 
             settings, 
             lambda inst2sense, outkey:
             evaluate_labeling_2010('./resources/SemEval-2010/evaluation/', inst2sense, outkey),
-            print_progress=False, seed=s) 
+            print_progress=False, seed=s)
+
+    fscore = scores2010['all']['FScore']
+    v_measure = scores2010['all']['V-Measure']
+
+    msg = 'SemEval 2010 FScore %.2f V-Measure %.2f AVG %.2f' % (
+            fscore * 100, v_measure * 100, np.sqrt(fscore * v_measure) * 100)
+    print(msg)
     
     
 

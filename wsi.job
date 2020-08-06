@@ -1,6 +1,6 @@
 #!/bin/bash
 # Job name:
-#SBATCH --job-name=bert
+#SBATCH --job-name=wsi
 # Partition:
 #SBATCH --partition=savio2_1080ti
 #

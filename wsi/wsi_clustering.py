@@ -33,7 +33,7 @@ def match_inst_id_representatives(inst_ids_to_representatives, save_clusters: st
     # load up saved items 
     train_transformed = sparse.csr_matrix(np.load(save_clusters + '.npy'))
     dict_vectorizer = load(save_clusters + '_dictvectorizer.joblib') 
-    tfidf_transformer = load(tfidf_transformer, save_clusters + '_tfidftransformer.joblib')
+    tfidf_transformer = load(save_clusters + '_tfidftransformer.joblib')
     with open(save_clusters + '_labels', 'r') as infile: 
         train_labels = infile.read().strip().split(' ')
 
@@ -44,9 +44,9 @@ def match_inst_id_representatives(inst_ids_to_representatives, save_clusters: st
     # calculate cosine sim between test_transformed and train_transformed
     sim = cosine_similarity(test_transformed, train_transformed) # n_test x n_train
     # for each get col index of each row's max 
-    max_idx = np.argmax(sim, axis=1)
+    max_idx = np.argmin(sim, axis=1)
     # get label of col index
-    labels = [train_labels[i] for i in max_idx]  
+    labels = [lemma + '.sense.' + train_labels[i] for i in max_idx]  
 
     test_senses = {}
     for i, inst_id in enumerate(inst_ids_ordered):
@@ -59,7 +59,7 @@ def match_inst_id_representatives(inst_ids_to_representatives, save_clusters: st
 
 def cluster_inst_ids_representatives(inst_ids_to_representatives: Dict[str, List[Dict[str, int]]],
                                      max_number_senses: float,min_sense_instances:int,
-                                     disable_tfidf: bool, explain_features: bool, save_clusters: str) -> Tuple[
+                                     disable_tfidf: bool, explain_features: bool, save_clusters=None) -> Tuple[
     Dict[str, Dict[str, int]], List]:
     global gold_n_senses
     """
