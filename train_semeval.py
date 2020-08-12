@@ -21,6 +21,8 @@ import random
 
 SEMEVAL2010_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/semeval_clusters_2010/' 
 SEMEVAL2013_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/semeval_clusters_2013/'  
+#SEMEVAL2010_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/sc_2010_exp5/' 
+#SEMEVAL2013_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/sc_2013_exp5/'  
 
 def perform_wsi(ds_name, bilm, train_gen, test_gen, \
         wsisettings: WSISettings, eval_proc, print_progress=False, seed=0):
@@ -35,6 +37,9 @@ def perform_wsi(ds_name, bilm, train_gen, test_gen, \
         lemma_pos = inst_id.rsplit('.', 1)[0]
         train_ds_by_target[lemma_pos][inst_id] = (pre, target, post)
 
+    # focus, for determining what went wrong 
+    focus = set(['deny.v', 'entry.n', 'pour.v', 'relax.v', 'sniff.v', 'weigh.v']) 
+
     inst_id_to_sense = {}
     test_gen = test_ds_by_target.items()
     if print_progress:
@@ -46,31 +51,57 @@ def perform_wsi(ds_name, bilm, train_gen, test_gen, \
         else: 
             outpath = SEMEVAL2013_CLUSTERS + str(seed) + '_' + lemma
         # TRAIN
-        '''
         lemma_pos = lemma_pos.replace('.j', '.a') # difference between train/test pos label
+        
+        if lemma_pos not in focus: continue # focus on just some examples
+
         train_iits_all = train_ds_by_target[lemma_pos]
         inst_ids = list(train_iits_all.keys())
-        if len(inst_ids) > 500: # cap at 500 examples 
+        num_test = len(test_inst_id_to_sentence)
+        '''
+        # train on test examples
+        train_inst_id_to_sentence = {}
+        for inst_id in test_inst_id_to_sentence: 
+            train_inst_id_to_sentence[inst_id] = test_inst_id_to_sentence[inst_id]
+        # plus additional train examples
+        cap = 500
+        if num_test < cap: # number of test examples not enough
+            if len(inst_ids) > cap - num_test: # go up to the cap
+                inst_ids = random.sample(inst_ids, cap - num_test)
+            # otherwise grab all training examples
+            for inst_id in inst_ids: 
+                train_inst_id_to_sentence[inst_id + '0000'] = train_iits_all[inst_id]
+        print(lemma_pos, len(train_inst_id_to_sentence))
+        '''
+        
+        if len(inst_ids) > 500: # number of train examples
             inst_ids = random.sample(inst_ids, 500)
             train_inst_id_to_sentence = {}
             for inst_id in inst_ids: 
                 train_inst_id_to_sentence[inst_id] = train_iits_all[inst_id]
         else: 
             train_inst_id_to_sentence = train_iits_all
+        
         train_inst_ids_to_representatives = \
             bilm.predict_sent_substitute_representatives(inst_id_to_sentence=train_inst_id_to_sentence,
                                                               wsisettings=wsisettings)
-        _, _ = cluster_inst_ids_representatives(
+        train_senses, _ = cluster_inst_ids_representatives(
             inst_ids_to_representatives=train_inst_ids_to_representatives,
             max_number_senses=wsisettings.max_number_senses,min_sense_instances=wsisettings.min_sense_instances,
             disable_tfidf=wsisettings.disable_tfidf,explain_features=True,save_clusters=outpath)
-        '''
+        
         # TEST
         test_inst_ids_to_representatives = \
             bilm.predict_sent_substitute_representatives(inst_id_to_sentence=test_inst_id_to_sentence,
                                                               wsisettings=wsisettings)
         clusters = match_inst_id_representatives(test_inst_ids_to_representatives, save_clusters=outpath)
-
+        '''
+        # this is for only evaluating on test set examples
+        clusters = {}
+        for inst_id in train_senses: 
+            if inst_id in test_inst_id_to_sentence: 
+                clusters[inst_id] = train_senses[inst_id]
+        '''
         inst_id_to_sense.update(clusters)
         
     out_key_path = None
@@ -101,7 +132,7 @@ def main():
     random.seed(s)
     # the following is copied from wsi_bert.py
     settings = DEFAULT_PARAMS._asdict()
-    settings['run_name'] = 'eval500'
+    settings['run_name'] = 'tracing_bad' # 'eval500'
     settings['patterns'] = [('{pre} {target_predict} {post}', 0.5)] # no dynamic patterns
     settings = WSISettings(**settings)
 
@@ -112,7 +143,8 @@ def main():
    
     # this part is new 
     # semeval 2013 eval_proc has been modified to do single-sense evaluation 
-
+    # TODO: uncomment semeval 2013
+    ''' 
     test_gen = generate_sem_eval_2013_no_tokenization('./resources/SemEval-2013-Task-13-test-data')
     train_gen = generate_semeval2013_train('/global/scratch/lucy3_li/ingroup_lang/logs/ukwac2.txt')
     
@@ -128,6 +160,7 @@ def main():
     fbc = scores2013['all']['FBC']
     msg = 'SemEval 2013 FNMI %.2f FBC %.2f AVG %.2f' % (fnmi * 100, fbc * 100, np.sqrt(fnmi * fbc) * 100)
     print(msg)
+    '''
      
     test_gen = generate_sem_eval_2010_no_tokenization('./resources/SemEval-2010/test_data')
     train_gen = generate_semeval2010_train('/global/scratch/lucy3_li/ingroup_lang/semeval-2010-task-14/training_data/')

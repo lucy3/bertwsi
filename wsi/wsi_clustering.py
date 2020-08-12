@@ -7,8 +7,9 @@ from collections import Counter
 import numpy as np
 import logging
 from scipy import sparse
+from matplotlib import pyplot as plt
 from scipy.spatial.distance import pdist, cdist
-from scipy.cluster.hierarchy import linkage, fcluster
+from scipy.cluster.hierarchy import linkage, fcluster, dendrogram
 from sklearn.svm import LinearSVC
 from sklearn.preprocessing import normalize
 from joblib import dump, load
@@ -44,7 +45,7 @@ def match_inst_id_representatives(inst_ids_to_representatives, save_clusters: st
     # calculate cosine sim between test_transformed and train_transformed
     sim = cosine_similarity(test_transformed, train_transformed) # n_test x n_train
     # for each get col index of each row's max 
-    max_idx = np.argmin(sim, axis=1)
+    max_idx = np.argmax(sim, axis=1)
     # get label of col index
     labels = [lemma + '.sense.' + train_labels[i] for i in max_idx]  
 
@@ -53,7 +54,6 @@ def match_inst_id_representatives(inst_ids_to_representatives, save_clusters: st
         inst_id_clusters = Counter(labels[i * n_represent:
                                           (i + 1) * n_represent])
         test_senses[inst_id] = inst_id_clusters
-
     return test_senses
 
 
@@ -78,6 +78,23 @@ def cluster_inst_ids_representatives(inst_ids_to_representatives: Dict[str, List
     n_represent = len(representatives) // len(inst_ids_ordered)
     dict_vectorizer = DictVectorizer(sparse=False)
     rep_mat = dict_vectorizer.fit_transform(representatives)
+
+    # TODO: delete these print statements
+    print(lemma, n_represent)
+    print(inst_ids_ordered)
+    fig, ax = plt.subplots(figsize=(30,30))
+    im = ax.imshow(rep_mat)
+    labels = dict_vectorizer.get_feature_names()
+    plt.title(lemma)
+    ax.set_xticks(np.arange(len(labels)))
+    ax.set_yticks(np.arange(len(representatives)))
+    ax.set_xticklabels(labels, fontsize=8)
+    ax.set_yticklabels([str(i) for i in range(len(representatives))], fontsize=8)
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+                     rotation_mode="anchor")
+    fig.tight_layout()
+    plt.savefig('/global/scratch/lucy3_li/bertwsi/plots/' + lemma.replace('.', '-') + '_repmat.png')
+
     # to_pipeline = [dict_vectorizer]
     if disable_tfidf:
         transformed = rep_mat
@@ -99,8 +116,19 @@ def cluster_inst_ids_representatives(inst_ids_to_representatives: Dict[str, List
 
     distance_crit = Z[-max_number_senses, 2] # get threshold for getting flat clusters
 
+    # TODO: delete these print statements and figures
+    plt.figure(figsize=(30,30))
+    plt.title(lemma)
+    dn = dendrogram(Z)
+    plt.axhline(y=distance_crit, c='k')
+    plt.savefig('/global/scratch/lucy3_li/bertwsi/plots/' + lemma.replace('.', '-') + '_dendrogram.png')
+
     labels = fcluster(Z, distance_crit,
                       'distance') - 1 # flat clusters
+
+    # TODO: delete these print statements
+    print("Number of training clusters:", len(set(labels)))
+    print("Sizes of clusters:", Counter(labels))
 
     n_senses = np.max(labels) + 1
 
