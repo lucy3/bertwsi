@@ -19,7 +19,10 @@ from multiprocessing import cpu_count
 import sys
 import random
 
-SEMEVAL2010_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/semeval_clusters_2010/' 
+max_num_senses = 20
+SEMEVAL2010_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/semeval_clusters_2010_' + str(max_num_senses) + '/' 
+if not os.path.exists(SEMEVAL2010_CLUSTERS):
+    os.makedirs(SEMEVAL2010_CLUSTERS)
 SEMEVAL2013_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/semeval_clusters_2013/'  
 #SEMEVAL2010_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/sc_2010_exp5/' 
 #SEMEVAL2013_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/sc_2013_exp5/'  
@@ -37,9 +40,6 @@ def perform_wsi(ds_name, bilm, train_gen, test_gen, \
         lemma_pos = inst_id.rsplit('.', 1)[0]
         train_ds_by_target[lemma_pos][inst_id] = (pre, target, post)
 
-    # focus, for determining what went wrong 
-    focus = set(['deny.v', 'entry.n', 'pour.v', 'relax.v', 'sniff.v', 'weigh.v']) 
-
     inst_id_to_sense = {}
     test_gen = test_ds_by_target.items()
     if print_progress:
@@ -53,8 +53,6 @@ def perform_wsi(ds_name, bilm, train_gen, test_gen, \
         # TRAIN
         lemma_pos = lemma_pos.replace('.j', '.a') # difference between train/test pos label
         
-        if lemma_pos not in focus: continue # focus on just some examples
-
         train_iits_all = train_ds_by_target[lemma_pos]
         inst_ids = list(train_iits_all.keys())
         num_test = len(test_inst_id_to_sentence)
@@ -85,11 +83,11 @@ def perform_wsi(ds_name, bilm, train_gen, test_gen, \
         train_inst_ids_to_representatives = \
             bilm.predict_sent_substitute_representatives(inst_id_to_sentence=train_inst_id_to_sentence,
                                                               wsisettings=wsisettings)
-        train_senses, _ = cluster_inst_ids_representatives(
+        train_senses, statistics = cluster_inst_ids_representatives(
             inst_ids_to_representatives=train_inst_ids_to_representatives,
             max_number_senses=wsisettings.max_number_senses,min_sense_instances=wsisettings.min_sense_instances,
             disable_tfidf=wsisettings.disable_tfidf,explain_features=True,save_clusters=outpath)
-        
+
         # TEST
         test_inst_ids_to_representatives = \
             bilm.predict_sent_substitute_representatives(inst_id_to_sentence=test_inst_id_to_sentence,
@@ -132,7 +130,8 @@ def main():
     random.seed(s)
     # the following is copied from wsi_bert.py
     settings = DEFAULT_PARAMS._asdict()
-    settings['run_name'] = 'tracing_bad' # 'eval500'
+    settings['max_number_senses'] = max_num_senses # adjustment
+    settings['run_name'] = '500params_' + str(max_num_senses) # 'eval500'
     settings['patterns'] = [('{pre} {target_predict} {post}', 0.5)] # no dynamic patterns
     settings = WSISettings(**settings)
 

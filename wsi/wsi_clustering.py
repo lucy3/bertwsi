@@ -79,22 +79,6 @@ def cluster_inst_ids_representatives(inst_ids_to_representatives: Dict[str, List
     dict_vectorizer = DictVectorizer(sparse=False)
     rep_mat = dict_vectorizer.fit_transform(representatives)
 
-    # TODO: delete these print statements
-    print(lemma, n_represent)
-    print(inst_ids_ordered)
-    fig, ax = plt.subplots(figsize=(30,30))
-    im = ax.imshow(rep_mat)
-    labels = dict_vectorizer.get_feature_names()
-    plt.title(lemma)
-    ax.set_xticks(np.arange(len(labels)))
-    ax.set_yticks(np.arange(len(representatives)))
-    ax.set_xticklabels(labels, fontsize=8)
-    ax.set_yticklabels([str(i) for i in range(len(representatives))], fontsize=8)
-    plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
-                     rotation_mode="anchor")
-    fig.tight_layout()
-    plt.savefig('/global/scratch/lucy3_li/bertwsi/plots/' + lemma.replace('.', '-') + '_repmat.png')
-
     # to_pipeline = [dict_vectorizer]
     if disable_tfidf:
         transformed = rep_mat
@@ -116,19 +100,8 @@ def cluster_inst_ids_representatives(inst_ids_to_representatives: Dict[str, List
 
     distance_crit = Z[-max_number_senses, 2] # get threshold for getting flat clusters
 
-    # TODO: delete these print statements and figures
-    plt.figure(figsize=(30,30))
-    plt.title(lemma)
-    dn = dendrogram(Z)
-    plt.axhline(y=distance_crit, c='k')
-    plt.savefig('/global/scratch/lucy3_li/bertwsi/plots/' + lemma.replace('.', '-') + '_dendrogram.png')
-
     labels = fcluster(Z, distance_crit,
                       'distance') - 1 # flat clusters
-
-    # TODO: delete these print statements
-    print("Number of training clusters:", len(set(labels)))
-    print("Sizes of clusters:", Counter(labels))
 
     n_senses = np.max(labels) + 1
 
