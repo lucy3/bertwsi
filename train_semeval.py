@@ -19,11 +19,13 @@ from multiprocessing import cpu_count
 import sys
 import random
 
-max_num_senses = 20
+max_num_senses = 25
 SEMEVAL2010_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/semeval_clusters_2010_' + str(max_num_senses) + '/' 
 if not os.path.exists(SEMEVAL2010_CLUSTERS):
     os.makedirs(SEMEVAL2010_CLUSTERS)
-SEMEVAL2013_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/semeval_clusters_2013/'  
+SEMEVAL2013_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/semeval_clusters_2013_' + str(max_num_senses) + '/'
+if not os.path.exists(SEMEVAL2013_CLUSTERS): 
+    os.makedirs(SEMEVAL2013_CLUSTERS)
 #SEMEVAL2010_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/sc_2010_exp5/' 
 #SEMEVAL2013_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/sc_2013_exp5/'  
 
@@ -142,8 +144,7 @@ def main():
    
     # this part is new 
     # semeval 2013 eval_proc has been modified to do single-sense evaluation 
-    # TODO: uncomment semeval 2013
-    ''' 
+    
     test_gen = generate_sem_eval_2013_no_tokenization('./resources/SemEval-2013-Task-13-test-data')
     train_gen = generate_semeval2013_train('/global/scratch/lucy3_li/ingroup_lang/logs/ukwac2.txt')
     
@@ -160,7 +161,6 @@ def main():
     msg = 'SemEval 2013 FNMI %.2f FBC %.2f AVG %.2f' % (fnmi * 100, fbc * 100, np.sqrt(fnmi * fbc) * 100)
     print(msg)
     '''
-     
     test_gen = generate_sem_eval_2010_no_tokenization('./resources/SemEval-2010/test_data')
     train_gen = generate_semeval2010_train('/global/scratch/lucy3_li/ingroup_lang/semeval-2010-task-14/training_data/')
     scores2010, corr = perform_wsi('SemEval2010', 
@@ -178,7 +178,7 @@ def main():
     msg = 'SemEval 2010 FScore %.2f V-Measure %.2f AVG %.2f' % (
             fscore * 100, v_measure * 100, np.sqrt(fscore * v_measure) * 100)
     print(msg)
-    
+    '''
     
 
 if __name__ == '__main__':
