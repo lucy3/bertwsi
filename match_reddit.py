@@ -15,10 +15,35 @@ import time
 import json
 import sys
 
-def main(): 
-    # for each subreddit
+CUDA_LAUNCH_BLOCKING="1"
+ROOT = '/global/scratch/lucy3_li/ingroup_lang/'
+LOGS = ROOT + 'logs/'
+INPUT = '/global/scratch/lucy3_li/bertwsi/reddit_input/'
+OUTPUT = '/global/scratch/lucy3_li/bertwsi/reddit_output.json'
+CLUSTERS = '/global/scratch/lucy3_li/bertwsi/reddit_clusters/'
+
+def main():
+    subreddit = sys.argv[1]
+    with open(LOGS + 'vocabs/vocab_map.json', 'r') as infile: 
+        d = json.load(infile)
     # get all instances of vocab words in sentences w/ line number and user
-    # for each vocab word 
+    # for each vocab word
+    doc = INPUT + subreddit
+    inst_id_to_sentence = defaultdict(dict)
+    with open(doc, 'r') as infile:
+        reader = csv.reader(infile, delimiter=',')
+        i = 0
+        for row in reader: 
+            lh = row[2]
+            word = row[3]
+            rh = row[4]
+            inst_id_to_sentence[word][word + '.' + str(i)] = (lh, word, rh)
+            i += 1
+
+    for word in inst_id_to_sentence: 
+        bilm.predict_sent_substitute_representatives(inst_id_to_sentence=test_inst_id_to_sentence,
+                                                                              wsisettings=settings)
+
     # run lm.predict_sent_substitute_representatives
     # dict vectorize and tfidf transform representatives
     # match representative to closest neighbor

@@ -29,13 +29,14 @@ def main():
    '''
    word = sys.argv[1]
    settings = DEFAULT_PARAMS._asdict()
+   settings['max_number_senses'] = 25
    settings['disable_lemmatization'] = True
+   settings['run_name'] = 'reddit_' + word
    settings['patterns'] = [('{pre} {target_predict} {post}', 0.5)]
    settings = WSISettings(**settings)
 
    lm = LMBert(settings.cuda_device, settings.bert_model,
                 max_batch_size=settings.max_batch_size)
-
    if sys.platform == 'linux':
                os.popen(f"taskset -cp 0-{cpu_count()-1} {os.getpid()}").read() 
    
@@ -66,10 +67,6 @@ def main():
             disable_tfidf=settings.disable_tfidf,explain_features=False,save_clusters=CLUSTERS + str(ID))
    end = time.time()
    print("TIME:", word, end-start)
-   ''' 
-   with open(OUTPUT, 'w') as outfile:
-       json.dump(inst_id_to_sense, outfile)
-   '''
 
 if __name__ == '__main__':
    main()

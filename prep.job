@@ -2,7 +2,7 @@
 # Job name:
 #SBATCH --job-name=d
 # Partition:
-#SBATCH --partition=savio2_1080ti
+#SBATCH --partition=savio2_gpu
 #
 # Wall clock limit:
 #SBATCH --time=2-00:00:00
@@ -16,9 +16,9 @@
 
 source /global/scratch/lucy3_li/anaconda3/bin/activate /global/scratch/lucy3_li/anaconda3/envs/nlp
 
-time awk -F "," '{print $1}' /global/scratch/lucy3_li/ingroup_lang/logs/vocabs/xad | parallel 'python reddit_prep.py {}' & 
-wait
+#time awk -F "," '{print $1}' /global/scratch/lucy3_li/ingroup_lang/logs/vocabs/xad | parallel 'python reddit_prep.py {}' & 
+#wait
 
-#python reddit_prep.py message
+python reddit_prep.py fashionreps
 
 source /global/scratch/lucy3_li/anaconda3/bin/deactivate
