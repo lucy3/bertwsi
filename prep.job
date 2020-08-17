@@ -14,11 +14,15 @@
 #SBATCH --mail-type=all
 #SBATCH --account=fc_dbamman
 
-source /global/scratch/lucy3_li/anaconda3/bin/activate /global/scratch/lucy3_li/anaconda3/envs/nlp
+#source /global/scratch/lucy3_li/anaconda3/bin/activate /global/scratch/lucy3_li/anaconda3/envs/nlp
 
 #time awk -F "," '{print $1}' /global/scratch/lucy3_li/ingroup_lang/logs/vocabs/xad | parallel 'python reddit_prep.py {}' & 
 #wait
 
-python reddit_prep.py fashionreps
+#python reddit_prep.py fashionreps
+
+source /global/scratch/lucy3_li/anaconda3/bin/activate /global/scratch/lucy3_li/anaconda3/envs/wsi
+
+python match_reddit.py fashionreps
 
 source /global/scratch/lucy3_li/anaconda3/bin/deactivate

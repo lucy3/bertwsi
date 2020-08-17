@@ -21,34 +21,62 @@ LOGS = ROOT + 'logs/'
 INPUT = '/global/scratch/lucy3_li/bertwsi/reddit_input/'
 OUTPUT = '/global/scratch/lucy3_li/bertwsi/reddit_output.json'
 CLUSTERS = '/global/scratch/lucy3_li/bertwsi/reddit_clusters/'
+SENSES = '/global/scratch/lucy3_li/bertwsi/ag_senses/'
 
 def main():
     subreddit = sys.argv[1]
+    settings = DEFAULT_PARAMS._asdict()
+    settings['max_number_senses'] = 25
+    settings['disable_lemmatization'] = True
+    settings['run_name'] = 'reddit_' + subreddit
+    settings['patterns'] = [('{pre} {target_predict} {post}', 0.5)]
+    settings = WSISettings(**settings)
+
+    lm = LMBert(settings.cuda_device, settings.bert_model,
+                            max_batch_size=settings.max_batch_size)
+    if sys.platform == 'linux':
+        os.popen(f"taskset -cp 0-{cpu_count()-1} {os.getpid()}").read() 
+
     with open(LOGS + 'vocabs/vocab_map.json', 'r') as infile: 
         d = json.load(infile)
-    # get all instances of vocab words in sentences w/ line number and user
-    # for each vocab word
     doc = INPUT + subreddit
     inst_id_to_sentence = defaultdict(dict)
     with open(doc, 'r') as infile:
         reader = csv.reader(infile, delimiter=',')
-        i = 0
         for row in reader: 
+            line_number = row[0]
+            curr_user = row[1]
             lh = row[2]
             word = row[3]
             rh = row[4]
-            inst_id_to_sentence[word][word + '.' + str(i)] = (lh, word, rh)
-            i += 1
-
+            inst_id_to_sentence[word][word + '.' + curr_user + '.' + str(line_number)] = (lh, word, rh)
+    start = time.time()
+    outfile = open(SENSES + subreddit, 'w')
     for word in inst_id_to_sentence: 
-        bilm.predict_sent_substitute_representatives(inst_id_to_sentence=test_inst_id_to_sentence,
+        ID = d[word]
+        print(word, len(inst_id_to_sentence[word]))
+        outpath = CLUSTERS + str(ID)
+        inst_ids_to_representatives = lm.predict_sent_substitute_representatives(inst_id_to_sentence=inst_id_to_sentence[word],
                                                                               wsisettings=settings)
+        word_senses = match_inst_id_representatives(inst_ids_to_representatives, save_clusters=outpath)
 
-    # run lm.predict_sent_substitute_representatives
-    # dict vectorize and tfidf transform representatives
-    # match representative to closest neighbor
-    # get label of closest neighbor
-    # save 
+        for instance in word_senses: 
+            max_weight = -float("inf")
+            max_sense = ''
+            senses = word_senses[instance]
+            for sense in senses: 
+                if senses[sense] > max_weight: 
+                    max_weight = senses[sense]
+                    max_sense = sense
+            c = inst_id.split('.')
+            word = c[0]
+            curr_user = c[1]
+            line_number = c[2]
+            outfile.write(str(line_number) + '_' + curr_user + '\t' + word + '\t' + str(max_sense) + '\n')  
+
+    outfile.close()
+    print("TOTAL TIME:", time.time() - start) 
+
 
 if __name__ == '__main__':
     main()

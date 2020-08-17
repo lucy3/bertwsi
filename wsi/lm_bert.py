@@ -89,7 +89,9 @@ class LMBert(SLM):
                 target_tokens = ['[MASK]'] if predicted_token == '{mask_predict}' else self.tokenizer.tokenize(target)
                 tokenized_text = before_pred + target_tokens + after_pred
                 if len(tokenized_text) > 510:
-                    tokenized_text = before_pred[-255:] + target_tokens + after_pred[:254] # total should be at most 510 tokens
+                    first_half = 255
+                    second_half = 255 - len(target_tokens)
+                    tokenized_text = before_pred[-first_half:] + target_tokens + after_pred[:second_half] # total should be at most 510 tokens
                     target_prediction_idx = len(before_pred[-255:]) + 1
                 return ['[CLS]'] + tokenized_text + ['[SEP]'], target_prediction_idx
 
