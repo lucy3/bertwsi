@@ -37,6 +37,7 @@ def chunks(data):
 def main():
     subreddit = sys.argv[1]
     print(subreddit)
+
     settings = DEFAULT_PARAMS._asdict()
     settings['max_number_senses'] = 25
     settings['disable_lemmatization'] = True
