@@ -1,6 +1,6 @@
 #!/bin/bash
 # Job name:
-#SBATCH --job-name=sr_a
+#SBATCH --job-name=sr_k
 # Partition:
 #SBATCH --partition=savio2_gpu
 #
@@ -26,7 +26,7 @@
 
 source /global/scratch/lucy3_li/anaconda3/bin/activate /global/scratch/lucy3_li/anaconda3/envs/wsi
 
-time awk -F "," '{print $1}' /global/scratch/lucy3_li/bertwsi/subreddit_splits/xaa | parallel -j 2 --joblog task_a.log --resume 'python match_reddit.py {}' & 
+time awk -F "," '{print $1}' /global/scratch/lucy3_li/bertwsi/subreddit_splits/xak | parallel -j 2 --joblog task_k.log --resume 'python match_reddit.py {}' & 
 wait
 
 #python match_reddit.py 2007scape
