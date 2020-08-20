@@ -59,7 +59,7 @@ class LMBert(SLM):
             self._spacy = nlp
             for spacyed in tqdm(
                     nlp.pipe(self.tokenizer.vocab.keys(), batch_size=1000, n_threads=multiprocessing.cpu_count()),
-                    total=len((self.tokenizer.vocab)), desc='lemmatizing vocab'):
+                    total=len((self.tokenizer.vocab)), desc='lemmatizing vocab', disable=True):
                 lemma = spacyed[0].lemma_ if spacyed[0].lemma_ != '-PRON-' else spacyed[0].lower_
                 self._lemmas_cache[spacyed[0].lower_] = lemma
                 # if len(lemma) <= 1:  # or lemma in ['not', 'else', 'none', 'otherwise', 'something', 'like', 'whatev',

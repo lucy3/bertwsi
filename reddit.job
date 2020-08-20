@@ -1,6 +1,6 @@
 #!/bin/bash
 # Job name:
-#SBATCH --job-name=ag5
+#SBATCH --job-name=temp
 # Partition:
 #SBATCH --partition=savio2_gpu
 #
@@ -16,10 +16,10 @@ source /global/scratch/lucy3_li/anaconda3/bin/activate /global/scratch/lucy3_li/
 
 module load java
 
-#time awk -F "," '{print $1}' /global/scratch/lucy3_li/bertwsi/xae | parallel 'python wsi_reddit.py {}' &
-#wait
+time awk -F "," '{print $1}' /global/scratch/lucy3_li/bertwsi/templist | parallel 'python wsi_reddit.py {}' &
+wait
 
-python wsi_reddit.py snowball
+#python wsi_reddit.py snowball
 
 #python inspect_senses.py
 

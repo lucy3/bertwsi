@@ -1,13 +1,13 @@
 #!/bin/bash
 # Job name:
-#SBATCH --job-name=d
+#SBATCH --job-name=sr_a
 # Partition:
 #SBATCH --partition=savio2_gpu
 #
 # Wall clock limit:
-#SBATCH --time=2-00:00:00
+#SBATCH --time=3-00:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=2
 #SBATCH --cpus-per-task=2
 #SBATCH --gres=gpu:1
 #SBATCH --mail-user=lucy3_li@berkeley.edu
@@ -19,10 +19,16 @@
 #time awk -F "," '{print $1}' /global/scratch/lucy3_li/ingroup_lang/logs/vocabs/xad | parallel 'python reddit_prep.py {}' & 
 #wait
 
+#time awk -F "," '{print $1}' /global/scratch/lucy3_li/ingroup_lang/logs/vocabs/sr_xaa | parallel 'python reddit_prep.py {}' & 
+#wait
+
 #python reddit_prep.py fashionreps
 
 source /global/scratch/lucy3_li/anaconda3/bin/activate /global/scratch/lucy3_li/anaconda3/envs/wsi
 
-python match_reddit.py fashionreps
+time awk -F "," '{print $1}' /global/scratch/lucy3_li/bertwsi/subreddit_splits/xaa | parallel -j 2 --joblog task_a.log --resume 'python match_reddit.py {}' & 
+wait
+
+#python match_reddit.py 2007scape
 
 source /global/scratch/lucy3_li/anaconda3/bin/deactivate
