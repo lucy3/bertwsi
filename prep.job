@@ -1,13 +1,13 @@
 #!/bin/bash
 # Job name:
-#SBATCH --job-name=sr_d
+#SBATCH --job-name=sr_j
 # Partition:
 #SBATCH --partition=savio2_gpu
 #
 # Wall clock limit:
 #SBATCH --time=3-00:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=2
+#SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2
 #SBATCH --gres=gpu:1
 #SBATCH --mail-user=lucy3_li@berkeley.edu
@@ -26,7 +26,7 @@
 
 source /global/scratch/lucy3_li/anaconda3/bin/activate /global/scratch/lucy3_li/anaconda3/envs/wsi
 
-time awk -F "," '{print $1}' /global/scratch/lucy3_li/bertwsi/subreddit_splits/xad | parallel -j 2 --joblog task_d.log --resume 'python match_reddit.py {}' & 
+time awk -F "," '{print $1}' /global/scratch/lucy3_li/bertwsi/subreddit_splits/xaj | parallel -j 1 --joblog task_j.log --resume --tmpdir /global/scratch/lucy3_li/ 'python match_reddit.py {}' & 
 wait
 
 #python match_reddit.py 2007scape
