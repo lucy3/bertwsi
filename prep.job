@@ -1,6 +1,6 @@
 #!/bin/bash
 # Job name:
-#SBATCH --job-name=sr_j
+#SBATCH --job-name=sr_f
 # Partition:
 #SBATCH --partition=savio2_gpu
 #
@@ -11,7 +11,7 @@
 #SBATCH --cpus-per-task=2
 #SBATCH --gres=gpu:1
 #SBATCH --mail-user=lucy3_li@berkeley.edu
-#SBATCH --mail-type=all
+#SBATCH --mail-type=END,FAIL
 #SBATCH --account=fc_dbamman
 
 #source /global/scratch/lucy3_li/anaconda3/bin/activate /global/scratch/lucy3_li/anaconda3/envs/nlp
@@ -26,7 +26,7 @@
 
 source /global/scratch/lucy3_li/anaconda3/bin/activate /global/scratch/lucy3_li/anaconda3/envs/wsi
 
-time awk -F "," '{print $1}' /global/scratch/lucy3_li/bertwsi/subreddit_splits/xaj | parallel -j 1 --joblog task_j.log --resume --tmpdir /global/scratch/lucy3_li/ 'python match_reddit.py {}' & 
+time awk -F "," '{print $1}' /global/scratch/lucy3_li/bertwsi/subreddit_splits/xaf | parallel -j 1 --joblog task_f.log --resume-failed --tmpdir /global/scratch/lucy3_li/ 'python match_reddit.py {}' & 
 wait
 
 #python match_reddit.py 2007scape
