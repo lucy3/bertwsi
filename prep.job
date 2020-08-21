@@ -19,16 +19,9 @@
 #time awk -F "," '{print $1}' /global/scratch/lucy3_li/ingroup_lang/logs/vocabs/xad | parallel 'python reddit_prep.py {}' & 
 #wait
 
-#time awk -F "," '{print $1}' /global/scratch/lucy3_li/ingroup_lang/logs/vocabs/sr_xaa | parallel 'python reddit_prep.py {}' & 
-#wait
-
-#python reddit_prep.py fashionreps
-
-source /global/scratch/lucy3_li/anaconda3/bin/activate /global/scratch/lucy3_li/anaconda3/envs/wsi
-
-time awk -F "," '{print $1}' /global/scratch/lucy3_li/bertwsi/subreddit_splits/xaf | parallel -j 1 --joblog task_f.log --resume-failed --tmpdir /global/scratch/lucy3_li/ 'python match_reddit.py {}' & 
+time awk -F "," '{print $1}' /global/scratch/lucy3_li/ingroup_lang/logs/vocabs/sr_xaa | parallel 'python reddit_prep.py {}' & 
 wait
 
-#python match_reddit.py 2007scape
+#python reddit_prep.py fashionreps
 
 source /global/scratch/lucy3_li/anaconda3/bin/deactivate
