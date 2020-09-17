@@ -26,7 +26,7 @@ SENSES = '/global/scratch/lucy3_li/bertwsi/ag_senses/'
 OTHER_CLUSTERS = '/global/scratch/lucy3_li/ingroup_lang/logs/reddit_centroids/'
 
 def chunks(data):
-    size = 5000
+    size = 4000
     if len(data) > size: 
         it = iter(data)
         for i in range(0, len(data), size):
@@ -93,7 +93,7 @@ def main():
                 line_number = numbers[0]
                 row_number = numbers[1]
                 sense_number = max_sense.split('.')[-1]
-                outfile.write(str(line_number) + '_' + curr_user + '\t' + word + '\t' + str(sense_number) + '\n')  
+                outfile.write(str(line_number) + '_' + curr_user + '\t' + word + '\t' + str(sense_number) + '\n') 
     outfile.close()
     print("TOTAL TIME:", time.time() - start) 
 

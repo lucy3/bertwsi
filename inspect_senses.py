@@ -14,7 +14,7 @@ def inspect_reddit():
     with open(LOGS + 'vocabs/vocab_map.json', 'r') as infile: 
        d = json.load(infile)
 
-    for word in ['dial', 'ow', 'the', 'transmission', 'haul']:
+    for word in ['scheme', 'pits']:
         ID = d[word]
         with open(CLUSTERS + str(ID) + '_senses.json', 'r') as infile: 
             word_senses = json.load(infile)
@@ -53,7 +53,7 @@ def inspect_reddit():
         print("# of senses:", len(sense2example[word]))
         print("sense cluster sizes:")
         for sense in sense2example[word]: 
-            print(len(sense2example[word][sense]))
+            print(sense, '---', len(sense2example[word][sense]))
             print("EXAMPLES:")
             if len(sense2example[word][sense]) <= sample_size: 
                sample = sense2example[word][sense]
@@ -64,8 +64,10 @@ def inspect_reddit():
         print()
 
 def inspect_semeval(): 
+    pass
 
-
+def main(): 
+    inspect_reddit()
 
 if __name__ == '__main__': 
     main()
