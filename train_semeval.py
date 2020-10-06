@@ -18,15 +18,16 @@ from wsi.wsi import WordSenseInductor
 from multiprocessing import cpu_count
 import sys
 import random
+import torch
 
-max_num_senses = 35
-min_sense_instances = 10
+s = 4 
+max_num_senses = 25
 SEMEVAL2010_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/semeval_clusters_2010_' + str(max_num_senses) + \
-        '_' + str(min_sense_instances) + '/' 
+        '_seed' + str(s) + '/' 
 if not os.path.exists(SEMEVAL2010_CLUSTERS):
     os.makedirs(SEMEVAL2010_CLUSTERS)
 SEMEVAL2013_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/semeval_clusters_2013_' + str(max_num_senses) + \
-        '_' + str(min_sense_instances) + '/'
+        '_seed' + str(s) + '/'
 if not os.path.exists(SEMEVAL2013_CLUSTERS): 
     os.makedirs(SEMEVAL2013_CLUSTERS)
 #SEMEVAL2010_CLUSTERS = '/global/scratch/lucy3_li/bertwsi/sc_2010_exp5/' 
@@ -131,13 +132,15 @@ def examine_data(gen):
         print()
 
 def main():
-    s = 0
     random.seed(s)
+    np.random.seed(s)
+    torch.manual_seed(s)
+    torch.cuda.manual_seed_all(s)
+    print("SEED:", s)
     # the following is copied from wsi_bert.py
     settings = DEFAULT_PARAMS._asdict()
     settings['max_number_senses'] = max_num_senses # adjustment
-    settings['min_sense_instances'] = min_sense_instances
-    settings['run_name'] = '500params_' + str(max_num_senses) + '_' + str(min_sense_instances) # 'eval500'
+    settings['run_name'] = '500params_' + str(max_num_senses) + '_seed' + str(s) # 'eval500'
     settings['patterns'] = [('{pre} {target_predict} {post}', 0.5)] # no dynamic patterns
     settings = WSISettings(**settings)
 
@@ -148,7 +151,7 @@ def main():
    
     # this part is new 
     # semeval 2013 eval_proc has been modified to do single-sense evaluation 
-    ''' 
+    
     test_gen = generate_sem_eval_2013_no_tokenization('./resources/SemEval-2013-Task-13-test-data')
     train_gen = generate_semeval2013_train('/global/scratch/lucy3_li/ingroup_lang/logs/ukwac2.txt')
     
@@ -164,7 +167,7 @@ def main():
     fbc = scores2013['all']['FBC']
     msg = 'SemEval 2013 FNMI %.2f FBC %.2f AVG %.2f' % (fnmi * 100, fbc * 100, np.sqrt(fnmi * fbc) * 100)
     print(msg)
-    '''
+    
     test_gen = generate_sem_eval_2010_no_tokenization('./resources/SemEval-2010/test_data')
     train_gen = generate_semeval2010_train('/global/scratch/lucy3_li/ingroup_lang/semeval-2010-task-14/training_data/')
     scores2010, corr = perform_wsi('SemEval2010', 

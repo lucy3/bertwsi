@@ -26,7 +26,7 @@ SENSES = '/global/scratch/lucy3_li/bertwsi/ag_senses/'
 OTHER_CLUSTERS = '/global/scratch/lucy3_li/ingroup_lang/logs/reddit_centroids/'
 
 def chunks(data):
-    size = 4000
+    size = 3000
     if len(data) > size: 
         it = iter(data)
         for i in range(0, len(data), size):

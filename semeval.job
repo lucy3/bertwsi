@@ -1,6 +1,6 @@
 #!/bin/bash
 # Job name:
-#SBATCH --job-name=semeval
+#SBATCH --job-name=semeval4
 # Partition:
 #SBATCH --partition=savio2_gpu
 #

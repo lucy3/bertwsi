@@ -2,7 +2,7 @@
 # Job name:
 #SBATCH --job-name=wsi
 # Partition:
-#SBATCH --partition=savio2_1080ti
+#SBATCH --partition=savio2_gpu
 #
 # Wall clock limit:
 #SBATCH --time=2-00:00:00
@@ -16,7 +16,9 @@ source /global/scratch/lucy3_li/anaconda3/bin/activate /global/scratch/lucy3_li/
 
 module load java
 
-time python wsi_bert.py
+#time python wsi_bert.py
+
+python inspect_senses.py
 
 source /global/scratch/lucy3_li/anaconda3/bin/deactivate
 
