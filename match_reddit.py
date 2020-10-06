@@ -19,11 +19,11 @@ from itertools import islice
 CUDA_LAUNCH_BLOCKING="1"
 ROOT = '/global/scratch/lucy3_li/ingroup_lang/'
 LOGS = ROOT + 'logs/'
-INPUT = '/global/scratch/lucy3_li/bertwsi/reddit_input/'
-OUTPUT = '/global/scratch/lucy3_li/bertwsi/reddit_output.json'
-CLUSTERS = '/global/scratch/lucy3_li/bertwsi/reddit_clusters/'
-SENSES = '/global/scratch/lucy3_li/bertwsi/ag_senses/'
-OTHER_CLUSTERS = '/global/scratch/lucy3_li/ingroup_lang/logs/reddit_centroids/'
+BERTWSI = '/global/scratch/lucy3_li/bertwsi/'
+INPUT = BERTWSI + 'reddit_input/'
+CLUSTERS = BERTWSI + 'reddit_clusters/'
+SENSES = BERTWSI + 'ag_senses/'
+OTHER_CLUSTERS = LOGS + 'reddit_centroids/'
 
 def chunks(data):
     size = 3000
