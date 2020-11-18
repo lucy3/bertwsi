@@ -10,6 +10,8 @@ import numpy as np
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from collections import Counter
+from wsi.WSISettings import DEFAULT_PARAMS, WSISettings
+from wsi.lm_bert import LMBert
 
 ROOT = '/global/scratch/lucy3_li/bertwsi/'
 LOGS = '/global/scratch/lucy3_li/ingroup_lang/logs/'
@@ -130,10 +132,27 @@ def get_important_substitutes(word):
         print(f', best feature words(PMI): {", ".join(best_features_pmi)}.')
         print(f' closest instance({best_instance_id}):\n---\n{nice_print_instance}\n---\n')
     
+def get_substitutes(): 
+    word = 'python'
+    settings = DEFAULT_PARAMS._asdict()
+    settings['max_number_senses'] = 25
+    settings['disable_lemmatization'] = True
+    settings['run_name'] = word
+    settings['patterns'] = [('{pre} {target_predict} {post}', 0.5)]
+    settings = WSISettings(**settings)
+    lm = LMBert(settings.cuda_device, settings.bert_model,
+                            max_batch_size=settings.max_batch_size)
+    inst_id_to_sentence = {}
+    inst_id_to_sentence[word + '.1'] = ('The', 'python', 'is a good multipurpose ship and a spectacular ship for grinding through missions.')
+    inst_id_to_sentence[word + '.2'] = ('No I\'ve used', 'python', 'HTML, CSS, Javascript, node, flask.')
+    inst_ids_to_representatives = lm.predict_sent_substitute_representatives(inst_id_to_sentence=inst_id_to_sentence,
+                                                                          wsisettings=settings)
+    print(inst_ids_to_representatives)
+
 def main(): 
     #inspect_reddit()
-
-    get_important_substitutes('python')
+    get_substitutes()
+    #get_important_substitutes('python')
 
 if __name__ == '__main__': 
     main()

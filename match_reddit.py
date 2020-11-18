@@ -20,13 +20,14 @@ CUDA_LAUNCH_BLOCKING="1"
 ROOT = '/global/scratch/lucy3_li/ingroup_lang/'
 LOGS = ROOT + 'logs/'
 BERTWSI = '/global/scratch/lucy3_li/bertwsi/'
-INPUT = BERTWSI + 'reddit_input/'
+#INPUT = BERTWSI + 'reddit_input/'
+INPUT = BERTWSI + 'last_sr_input/'
 CLUSTERS = BERTWSI + 'reddit_clusters/'
 SENSES = BERTWSI + 'ag_senses/'
 OTHER_CLUSTERS = LOGS + 'reddit_centroids/'
 
 def chunks(data):
-    size = 3000
+    size = 3500
     if len(data) > size: 
         it = iter(data)
         for i in range(0, len(data), size):
