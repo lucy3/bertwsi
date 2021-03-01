@@ -18,4 +18,10 @@ Logs should be printed to "debug" dir.
 
 ### Additions by Lucy
 
-To be described
+- train\_semeval.py: training for SemEval tasks
+- reddit\_prep.py: formats Reddit data
+- wsi\_reddit.py: train / learn clusters on Reddit examples
+- match\_reddit.py: matches Reddit examples to clusters obtained after training
+- inspect\_senses.py: examines resulting senses
+- scheduler.py: for submitting jobs
+- wsi/wsi\_clustering.py: includes modifications that save learned clusters and a matching process for new examples
